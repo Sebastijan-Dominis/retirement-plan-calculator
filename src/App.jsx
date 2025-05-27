@@ -1,79 +1,167 @@
+import { useReducer } from "react";
 import styles from "./App.module.css";
-import { useState } from "react";
 
-function App() {
-  const [salary, setSalary] = useState(0);
-  const [initialInvestment, setInitialInvestment] = useState(0);
-  const [percentageToInvest, setPercentageToInvest] = useState(0);
-  const [years, setYears] = useState(0);
+const firstCol = [
+  { text: "Salary 💳", name: "salary", type: "updateValue" },
+  {
+    text: "Initial investment 💲",
+    name: "initialInvestment",
+    type: "updateValue",
+  },
+  {
+    text: "% to invest after expenses 🤵",
+    name: "percentageToInvest",
+    type: "updatePercentageAfterExpenses",
+  },
+  {
+    text: "% to save after expenses ✅",
+    name: "percentageToSave",
+    type: "updatePercentageAfterExpenses",
+  },
+  { text: "Years ⌛", name: "years", type: "updateValue" },
+];
 
-  const [housing, setHousing] = useState(0);
-  const [transport, setTransport] = useState(0);
-  const [health, setHealth] = useState(0);
-  const [groceries, setGroceries] = useState(0);
-  const [entertainment, setEntertainment] = useState(0);
-  const [other, setOther] = useState(0);
+const secondCol = [
+  { text: "Housing 🏠", name: "housing", type: "updateHousing" },
+  { text: "Transport 🚗", name: "transport", type: "updateValue" },
+  { text: "Health 🏥", name: "health", type: "updateValue" },
+  { text: "Groceries 🥦", name: "groceries", type: "updateValue" },
+  { text: "Entertainment 🎥", name: "entertainment", type: "updateValue" },
+  { text: "Other 🪑", name: "other", type: "updateValue" },
+];
 
-  const [generalInflation, setGeneralInflation] = useState(0);
-  const [housingOption, setHousingOption] = useState("None");
-  const [housingInflation, setHousingInflation] = useState(0);
-  const [mortgageYearsLeft, setMortgageYearsLeft] = useState(0);
-  const [yearlySalaryIncrease, setYearlySalaryIncrease] = useState(0);
-  const [yearlyReturn, setYearlyReturn] = useState(0);
+const thirdCol = [
+  { text: "General inflation 🔥", name: "generalInflation" },
+  { text: "Yearly salary increase 💹", name: "yearlySalaryIncrease" },
+  { text: "Yearly return ➕💹", name: "yearlyReturn" },
+];
 
-  let housingTotal;
+const noMinZero = new Set([
+  "generalInflation",
+  "housingOption",
+  "yearlySalaryIncrease",
+  "yearlyReturn",
+]);
 
-  let nonHousingTotal;
-  let nonHousingTemp = transport + health + groceries + entertainment + other;
-  let expensesTemp;
-  let totalExpenses;
+const initialState = {
+  // Income, savings and investment
+  salary: 0,
+  initialInvestment: 0,
+  percentageToInvest: 0,
+  percentageToSave: 0,
+  years: 0,
 
-  let totalIncome;
-  let incomeTemp = salary;
+  // Expenses
+  housing: 0,
+  transport: 0,
+  health: 0,
+  groceries: 0,
+  entertainment: 0,
+  other: 0,
 
-  let remaining;
-  let totalNet;
+  // Expected
+  generalInflation: 0,
+  housingOption: "none",
+  housingInflation: 0,
+  mortgageYearsLeft: 0,
+  yearlySalaryIncrease: 0,
+  yearlyReturn: 0,
+};
 
-  let totalInvestment = initialInvestment;
-  let investmentTemp;
-  let totalYield = initialInvestment;
-
-  let totalSavings;
-  let savingsTemp;
-
-  for (let i = 0; i < years; i++) {
-    if (housingOption === "None") housingTotal = 0;
-    else if (housingOption === "Mortgage") housingTotal = housing * years;
-    else {
-      let rent = housing;
-      for (let i = 0; i < years; i++) {
-        housingTotal += rent;
-        rent *= housingInflation;
+function reducer(state, { type, name, value }) {
+  switch (type) {
+    case "updateValue": {
+      return { ...state, [name]: value };
+    }
+    case "updateHousing": {
+      const hasToBeZero = state.housingOption === "none";
+      if (hasToBeZero) return { ...state, housing: 0 };
+      return { ...state, housing: value };
+    }
+    case "updatePercentageAfterExpenses": {
+      if (name === "percentageToInvest") {
+        return {
+          ...state,
+          percentageToInvest: value,
+          percentageToSave: 100 - value,
+        };
+      } else {
+        return {
+          ...state,
+          percentageToSave: value,
+          percentageToInvest: 100 - value,
+        };
       }
     }
-
-    nonHousingTotal += nonHousingTemp;
-    nonHousingTemp *= generalInflation;
-
-    totalIncome += incomeTemp;
-    incomeTemp *= yearlySalaryIncrease;
-
-    expensesTemp = housingTotal + nonHousingTotal;
-    totalExpenses += expensesTemp;
-
-    remaining = incomeTemp - expensesTemp;
-
-    // early return if investing is not possible
-    if (remaining <= 0) return;
-    totalNet += remaining;
-
-    investmentTemp = percentageToInvest * remaining;
-    totalInvestment += investmentTemp;
-    totalYield += totalInvestment * yearlyReturn;
-
-    savingsTemp = remaining - investmentTemp;
-    totalSavings += savingsTemp;
+    case "updateHousingOption": {
+      if (value === "none") {
+        return { ...state, housing: 0, housingOption: value };
+      } else {
+        return { ...state, housingOption: value };
+      }
+    }
+    default:
+      throw new Error("Unexpected action.");
   }
+}
+
+function calculate(state) {
+  if (state.years === 0) {
+    return { savings: null, portfolio: null };
+  }
+
+  let currentSalary = state.salary;
+  let currentHousingExpenses = state.housing * 12;
+  let yearsLeft = state.mortgageYearsLeft;
+  let currentNonHousingExpenses =
+    (state.transport +
+      state.health +
+      state.groceries +
+      state.entertainment +
+      state.other) *
+    12;
+  let currentTotalExpenses = currentHousingExpenses + currentNonHousingExpenses;
+  let disposableIncome = currentSalary - currentTotalExpenses;
+  let totalSavings = 0;
+  let totalPortfolio = state.initialInvestment;
+
+  for (let i = 0; i < state.years; i++) {
+    // updating savings and portfolio
+    totalSavings += disposableIncome * (state.percentageToSave / 100);
+    totalPortfolio *= 1 + state.yearlyReturn / 100;
+    totalPortfolio += disposableIncome * (state.percentageToInvest / 100);
+
+    // recalculating the variables
+    currentSalary *= 1 + state.yearlySalaryIncrease / 100;
+
+    if (
+      state.housingOption === "none" ||
+      (state.housingOption === "mortgage" && yearsLeft === 0)
+    ) {
+      currentHousingExpenses = 0;
+    } else if (state.housingOption === "mortgage" && yearsLeft > 0) {
+      yearsLeft--;
+    } else if (state.housingOption === "rent") {
+      currentHousingExpenses *= 1 + state.housingInflation / 100;
+    }
+
+    currentNonHousingExpenses *= 1 + state.generalInflation / 100;
+
+    currentTotalExpenses = currentHousingExpenses + currentNonHousingExpenses;
+
+    disposableIncome = currentSalary - currentTotalExpenses;
+    if (disposableIncome < 0) {
+      return { savings: 0, portfolio: 0 };
+    }
+  }
+
+  return { savings: totalSavings, portfolio: totalPortfolio };
+}
+
+function App() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const results = calculate(state);
 
   return (
     <div className={styles.container}>
@@ -84,102 +172,155 @@ function App() {
       <div className={styles.calculator}>
         <div>
           <h2 className={styles.columnTitle}>
-            Income, investment, and savings 💵
+            Income (yearly), investment, and savings 💵
           </h2>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Salary</h3>
-            <input
-              className={styles.input}
-              type="number"
-              value={salary}
-              onChange={(e) => setSalary(e.target.value)}
-              min={0}
-            />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Initial investment</h3>
-            <input className={styles.input} type="number" value />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>
-              % to invest after expenses
-            </h3>
-            <input className={styles.input} type="number" value />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>% to save after expenses</h3>
-            <input className={styles.input} type="number" value readOnly />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Years</h3>
-            <input className={styles.input} type="number" value />
-          </div>
+          {firstCol.map((el) => {
+            return (
+              <div className={styles.inputContainer} key={el.name}>
+                <h3 className={styles.columnSubtitle}>{el.text}</h3>
+                <input
+                  className={styles.input}
+                  type="number"
+                  value={state[el.name]}
+                  onChange={(e) =>
+                    dispatch({
+                      type: el.type,
+                      name: el.name,
+                      value: Number(e.target.value),
+                    })
+                  }
+                  min={!noMinZero.has(el.name) ? 0 : ""}
+                />
+              </div>
+            );
+          })}
         </div>
 
         <div>
-          <h2 className={styles.columnTitle}>Expenses 🔥</h2>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Housing 🏠</h3>
-            <input className={styles.input} type="number" />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Transport 🚗</h3>
-            <input className={styles.input} type="number" />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Health 🏥</h3>
-            <input className={styles.input} type="number" />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Groceries 🥦</h3>
-            <input className={styles.input} type="number" />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Entertainment 🎉</h3>
-            <input className={styles.input} type="number" />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Other ➖</h3>
-            <input className={styles.input} type="number" />
-          </div>
+          <h2 className={styles.columnTitle}>Expenses (monthly) 🔥</h2>
+          {secondCol.map((el) => {
+            return (
+              <div className={styles.inputContainer} key={el.name}>
+                <h3 className={styles.columnSubtitle}>{el.text}</h3>
+                <input
+                  className={styles.input}
+                  type="number"
+                  value={state[el.name]}
+                  onChange={(e) =>
+                    dispatch({
+                      type: el.type,
+                      name: el.name,
+                      value: Number(e.target.value),
+                    })
+                  }
+                  min={!noMinZero.has(el.name) ? 0 : ""}
+                />
+              </div>
+            );
+          })}
         </div>
 
         <div>
           <h2 className={styles.columnTitle}>Expected 🤔</h2>
           <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>General inflation</h3>
-            <input className={styles.input} type="number" />
-          </div>
-          <div className={styles.inputContainer}>
             <h3 className={styles.columnSubtitle}>
-              Do you pay mortgage or rent?
+              Do you pay mortgage or rent? 🏠
             </h3>
-            <select className={styles.input}>
+            <select
+              className={styles.input}
+              value={state.housingOption}
+              onChange={(e) =>
+                dispatch({
+                  type: "updateHousingOption",
+                  name: "housingOption",
+                  value: e.target.value,
+                })
+              }
+            >
               <option value="none">None</option>
               <option value="mortgage">Mortgage</option>
               <option value="rent">Rent</option>
             </select>
           </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Housing (rent) inflation</h3>
-            <input className={styles.input} type="number" />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>
-              Yearly salary increase (%)
-            </h3>
-            <input className={styles.input} type="number" />
-          </div>
-          <div className={styles.inputContainer}>
-            <h3 className={styles.columnSubtitle}>Yearly return (%)</h3>
-            <input className={styles.input} type="number" />
-          </div>
+          {state.housingOption === "rent" && (
+            <div className={styles.inputContainer}>
+              <h3 className={styles.columnSubtitle}>
+                Housing (rent) inflation 🔥
+              </h3>
+              <input
+                className={styles.input}
+                type="number"
+                value={state.housingInflation}
+                onChange={(e) =>
+                  dispatch({
+                    type: "updateValue",
+                    name: "housingInflation",
+                    value: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+          )}
+          {state.housingOption === "mortgage" && (
+            <div className={styles.inputContainer}>
+              <h3 className={styles.columnSubtitle}>
+                Years left to pay mortgage ⌛
+              </h3>
+              <input
+                className={styles.input}
+                type="number"
+                value={state.mortgageYearsLeft}
+                onChange={(e) =>
+                  dispatch({
+                    type: "updateValue",
+                    name: "mortgageYearsLeft",
+                    value: Number(e.target.value),
+                  })
+                }
+                min={0}
+              />
+            </div>
+          )}
+          {thirdCol.map((el) => {
+            return (
+              <div className={styles.inputContainer} key={el.name}>
+                <h3 className={styles.columnSubtitle}>{el.text}</h3>
+                <input
+                  className={styles.input}
+                  type="number"
+                  value={state[el.name]}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "updateValue",
+                      name: el.name,
+                      value: Number(e.target.value),
+                    })
+                  }
+                  min={!noMinZero.has(el.name) ? 0 : ""}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <p className={styles.result}>
-        Your final amount is <span className={styles.resultNum}></span>
-      </p>
+      {results.savings === 0 && results.portfolio === 0 && (
+        <p className={styles.result}>
+          Oops! It seems like your expenses exceed your income. See if you can
+          cut them somehow!
+        </p>
+      )}
+      {(results.savings > 0 || results.portfolio > 0) && (
+        <p className={styles.result}>
+          In {state.years} years, you will have {results.savings.toFixed(2)} in
+          your savings and {results.portfolio.toFixed(2)} in your portfolio.
+        </p>
+      )}
+      {results.savings === null && results.portfolio === null && (
+        <p className={styles.result}>
+          Please enter a positive year to calculate
+        </p>
+      )}
     </div>
   );
 }
