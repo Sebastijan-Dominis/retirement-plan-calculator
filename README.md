@@ -40,10 +40,13 @@ npm run dev
 
 ## Screenshots
 
+### First screen
 ![First screen](screenshots/retirement-plan-1.png)
 
+### Future savings and portfolio calculation
 ![Future savings and portfolio calculation](screenshots/retirement-plan-2.png)
 
+### Expenses too high
 ![Expenses too high](screenshots/retirement-plan-3.png)
 
 ## Scripts
