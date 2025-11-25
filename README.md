@@ -8,6 +8,8 @@ A small, interactive React app (built with Vite) that helps you estimate savings
 - [Screenshots](#screenshots)
 - [Scripts](#scripts)
 - [License](#license)
+- [Contributing](#contributing)
+- [Author & Contact](#author--contact)
 
 ## Features
 - **Interactive inputs:** Annual salary, initial investment, savings vs investment split, monthly expenses (housing, transport, health, groceries, entertainment, other), and expectations (inflation, salary increase, annual return).
@@ -55,9 +57,9 @@ Available npm scripts (from `package.json`):
 ## Licence
 - This project includes a `LICENSE` file in the repository root. Review it for licensing details.
 
-**Contributing**
+## Contributing
 - Feel free to open issues or PRs — small improvements, accessibility fixes, and more realistic financial models are welcome.
 
-**Contact**
-- Author: repository owner (see repository metadata).
-S
+## Author & Contact
+- Author: Sebastijan Dominis
+- Contact: sebastijan.dominis99@gmail.com
